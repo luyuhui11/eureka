@@ -1,27 +1,40 @@
 apply plugin: 'war'
 
 dependencies {
+    // compile 表示依赖 ，依赖Eeureka-client包，为什么依赖eureka-client？因为eureka也相当于是eureka客户端
     compile project(':eureka-client')
+    //依赖eureka服务端，注册中心
     compile project(':eureka-core')
+    //依赖jersy,jersy就是一个类似于spring mvc的一个这样的框架，因为eureka-server本质上是一个war包
     runtime 'xerces:xercesImpl:2.4.0'
     compile "com.sun.jersey:jersey-server:$jerseyVersion"
+    //依赖jersy,jersy就是一个类似于spring mvc的一个这样的框架
     compile "com.sun.jersey:jersey-servlet:$jerseyVersion"
+    //依赖log4j日志
     compile 'org.slf4j:slf4j-log4j12:1.6.1'
-    runtime 'org.codehaus.jettison:jettison:1.2' 
+    //jaxb 一个可以根据xml生成java类的工具
+    compile 'org.glassfish.jaxb:jaxb-runtime:2.3.3'
+
+    //servlet
+    runtime 'org.codehaus.jettison:jettison:1.2'
     providedCompile "javax.servlet:servlet-api:$servletVersion"
 
+    //eureka测试工具类
     testCompile project(':eureka-test-utils')
+    //测试相关的Mockito
     testCompile "org.mockito:mockito-core:${mockitoVersion}"
+    //依赖jetty。测试直接用jetty容器
     testCompile "org.eclipse.jetty:jetty-server:$jetty_version"
     testCompile "org.eclipse.jetty:jetty-webapp:$jetty_version"
 }
 
 task copyLibs(type: Copy) {
     into 'testlibs/WEB-INF/libs'
-    from configurations.runtime	
+    from configurations.runtime
 }
 
 war {
+    //将eureka-resources下面的资源文件引入到eureka-server，最终打成war包
     from (project(':eureka-resources').file('build/resources/main'))
 }
 
