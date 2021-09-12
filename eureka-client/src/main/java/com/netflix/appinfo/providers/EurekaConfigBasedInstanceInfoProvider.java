@@ -44,6 +44,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
 
     @Override
     public synchronized InstanceInfo get() {
+        // instanceInfo 表示当前服务实例的信息
         if (instanceInfo == null) {
             // Build the lease information to be passed to the server based on config
             LeaseInfo.Builder leaseInfoBuilder = LeaseInfo.Builder.newBuilder()
@@ -113,6 +114,7 @@ public class EurekaConfigBasedInstanceInfoProvider implements Provider<InstanceI
             }
 
             // Add any user-specific metadata information
+            //自定义元数据
             for (Map.Entry<String, String> mapEntry : config.getMetadataMap().entrySet()) {
                 String key = mapEntry.getKey();
                 String value = mapEntry.getValue();
