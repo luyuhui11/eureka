@@ -44,6 +44,7 @@ public class ThresholdLevelsMetric {
         this.gauges = new LongGauge[levels.length];
         for (int i = 0; i < levels.length; i++) {
             String name = prefix + String.format("%05d", levels[i]);
+            //监控配置
             MonitorConfig config = new MonitorConfig.Builder(name)
                     .withTag("class", owner.getClass().getName())
                     .build();

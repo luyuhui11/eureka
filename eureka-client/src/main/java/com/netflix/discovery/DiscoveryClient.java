@@ -267,6 +267,10 @@ public class DiscoveryClient implements EurekaClient {
         this(applicationInfoManager, config, args, new Provider<BackupRegistry>() {
             private volatile BackupRegistry backupRegistryInstance;
 
+            /**
+             * 备用注册表
+             * @return
+             */
             @Override
             public synchronized BackupRegistry get() {
                 if (backupRegistryInstance == null) {
@@ -334,6 +338,21 @@ public class DiscoveryClient implements EurekaClient {
         remoteRegionsToFetch = new AtomicReference<String>(clientConfig.fetchRegistryForRemoteRegions());
         remoteRegionsRef = new AtomicReference<>(remoteRegionsToFetch.get() == null ? null : remoteRegionsToFetch.get().split(","));
 
+        /**
+         *
+         server:
+         port: 8080
+         spring:
+         application:
+         name: ServiceA
+         eureka:
+         instance:
+         hostname: localhost
+         client:
+         serviceUrl:
+         defaultZone: http://localhost:8761/eureka
+         */
+        //判断是否需要抓取注册表
         if (config.shouldFetchRegistry()) {
             this.registryStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRY_PREFIX + "lastUpdateSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
@@ -817,6 +836,7 @@ public class DiscoveryClient implements EurekaClient {
         logger.info(PREFIX + appPathIdentifier + ": registering service...");
         EurekaHttpResponse<Void> httpResponse;
         try {
+            //发送了一个http的请求
             httpResponse = eurekaTransport.registrationClient.register(instanceInfo);
         } catch (Exception e) {
             logger.warn("{} - registration failed {}", PREFIX + appPathIdentifier, e.getMessage(), e);
@@ -1248,6 +1268,7 @@ public class DiscoveryClient implements EurekaClient {
      * Initializes all scheduled tasks.
      */
     private void initScheduledTasks() {
+        //定时抓取注册表的调度任务
         if (clientConfig.shouldFetchRegistry()) {
             // registry cache refresh timer
             int registryFetchIntervalSeconds = clientConfig.getRegistryFetchIntervalSeconds();
@@ -1265,6 +1286,7 @@ public class DiscoveryClient implements EurekaClient {
                     registryFetchIntervalSeconds, TimeUnit.SECONDS);
         }
 
+        //给eureka server发送心跳的定时任务
         if (clientConfig.shouldRegisterWithEureka()) {
             int renewalIntervalInSecs = instanceInfo.getLeaseInfo().getRenewalIntervalInSecs();
             int expBackOffBound = clientConfig.getHeartbeatExecutorExponentialBackOffBound();
@@ -1284,12 +1306,14 @@ public class DiscoveryClient implements EurekaClient {
                     renewalIntervalInSecs, TimeUnit.SECONDS);
 
             // InstanceInfo replicator
+            //服务实例的复制
             instanceInfoReplicator = new InstanceInfoReplicator(
                     this,
                     instanceInfo,
                     clientConfig.getInstanceInfoReplicationIntervalSeconds(),
                     2); // burstSize
 
+            //注册了状态变更的监听器
             statusChangeListener = new ApplicationInfoManager.StatusChangeListener() {
                 @Override
                 public String getId() {
@@ -1386,6 +1410,7 @@ public class DiscoveryClient implements EurekaClient {
 
         InstanceStatus status;
         try {
+            //检查状态
             status = getHealthCheckHandler().getStatus(instanceInfo.getStatus());
         } catch (Exception e) {
             logger.warn("Exception from healthcheckHandler.getStatus, setting status to DOWN", e);
@@ -1393,6 +1418,7 @@ public class DiscoveryClient implements EurekaClient {
         }
 
         if (null != status) {
+            //更新服务实例的状态
             applicationInfoManager.setInstanceStatus(status);
         }
     }
