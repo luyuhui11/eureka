@@ -112,6 +112,7 @@ public class EurekaBootStrap implements ServletContextListener {
         try {
             //初始化eureka的启动环境
             initEurekaEnvironment();
+            //初始化eureka server的上下文
             initEurekaServerContext();
 
             ServletContext sc = event.getServletContext();
@@ -146,6 +147,8 @@ public class EurekaBootStrap implements ServletContextListener {
      * init hook for server context. Override for custom logic.
      */
     protected void initEurekaServerContext() throws Exception {
+        //读取eureka-server.properties文件到EurekaServerCofig
+        //EurekaServerConfig提供getXXX方法暴露
         EurekaServerConfig eurekaServerConfig = new DefaultEurekaServerConfig();
 
         // For backward compatibility
