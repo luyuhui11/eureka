@@ -359,7 +359,9 @@ public class DiscoveryClient implements EurekaClient {
             this.registryStalenessMonitor = ThresholdLevelsMetric.NO_OP_METRIC;
         }
 
+        //registerWithEureka ：表示是否将自己注册到Eureka Server，默认为true。需要
         if (config.shouldRegisterWithEureka()) {
+            //心跳监控器
             this.heartbeatStalenessMonitor = new ThresholdLevelsMetric(this, METRIC_REGISTRATION_PREFIX + "lastHeartbeatSec_", new long[]{15L, 30L, 60L, 120L, 240L, 480L});
         } else {
             this.heartbeatStalenessMonitor = ThresholdLevelsMetric.NO_OP_METRIC;

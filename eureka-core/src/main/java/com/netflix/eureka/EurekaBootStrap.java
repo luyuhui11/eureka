@@ -112,6 +112,7 @@ public class EurekaBootStrap implements ServletContextListener {
         try {
             //初始化eureka的启动环境
             initEurekaEnvironment();
+            //初始化eureka上下文
             initEurekaServerContext();
 
             ServletContext sc = event.getServletContext();
@@ -204,6 +205,7 @@ public class EurekaBootStrap implements ServletContextListener {
             );
         }
 
+        //多个相同的实例组成的一个集群，eureka-server组成的集群
         PeerEurekaNodes peerEurekaNodes = getPeerEurekaNodes(
                 registry,
                 eurekaServerConfig,
@@ -212,6 +214,8 @@ public class EurekaBootStrap implements ServletContextListener {
                 applicationInfoManager
         );
 
+        //通过eurekaServerConfig配置，eureka-server注册表，eureka-server集群，配置管理器
+        // 构建eureka-server上下文
         serverContext = new DefaultEurekaServerContext(
                 eurekaServerConfig,
                 serverCodecs,
@@ -220,16 +224,19 @@ public class EurekaBootStrap implements ServletContextListener {
                 applicationInfoManager
         );
 
+        //将serverContext放入EurekaServerContextHolder，以后想取serverContext里面的内容，可以通过holder取
         EurekaServerContextHolder.initialize(serverContext);
 
         serverContext.initialize();
         logger.info("Initialized server context");
 
         // Copy registry from neighboring eureka node
+        //从相邻的一个节点拷贝注册信息
         int registryCount = registry.syncUp();
         registry.openForTraffic(applicationInfoManager, registryCount);
 
         // Register all monitoring statistics.
+        //跟eureka自身的监控机制相关联的
         EurekaMonitors.registerAllStats();
     }
 
