@@ -898,23 +898,30 @@ public class DiscoveryClient implements EurekaClient {
         if (isShutdown.compareAndSet(false, true)) {
             logger.info("Shutting down DiscoveryClient ...");
 
+            //不重要
             if (statusChangeListener != null && applicationInfoManager != null) {
                 applicationInfoManager.unregisterStatusChangeListener(statusChangeListener.getId());
             }
 
+            //将线程池都给shutdown掉了，释放资源，停止运行的线程
             cancelScheduledTasks();
 
             // If APPINFO was registered
             if (applicationInfoManager != null && clientConfig.shouldRegisterWithEureka()) {
+                //将服务实例的状态设置为:DOWN(下线)
                 applicationInfoManager.setInstanceStatus(InstanceStatus.DOWN);
+                //取消注册
                 unregister();
             }
 
+            //关闭网络通信组件
             if (eurekaTransport != null) {
                 eurekaTransport.shutdown();
             }
 
+            //关闭心跳
             heartbeatStalenessMonitor.shutdown();
+            //关闭
             registryStalenessMonitor.shutdown();
 
             logger.info("Completed shut down of DiscoveryClient");
@@ -1105,7 +1112,9 @@ public class DiscoveryClient implements EurekaClient {
             String reconcileHashCode = "";
             if (fetchRegistryUpdateLock.tryLock()) {
                 try {
+                    //更新增量注册表
                     updateDelta(delta);
+                    //对于合并完的注册表计算hash值
                     reconcileHashCode = getReconcileHashCode(applications);
                 } finally {
                     fetchRegistryUpdateLock.unlock();
@@ -1214,7 +1223,7 @@ public class DiscoveryClient implements EurekaClient {
     private void updateDelta(Applications delta) {
         int deltaCount = 0;
         for (Application app : delta.getRegisteredApplications()) {
-            for (InstanceInfo instance : app.getInstances()) {
+            for (InstanceInfo instance : app.getInstances()) {//拿到本地缓存的注册表
                 Applications applications = getApplications();
                 String instanceRegion = instanceRegionChecker.getInstanceRegion(instance);
                 if (!instanceRegionChecker.isLocalRegion(instanceRegion)) {
