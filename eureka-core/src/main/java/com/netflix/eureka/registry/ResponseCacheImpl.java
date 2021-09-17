@@ -245,6 +245,7 @@ public class ResponseCacheImpl implements ResponseCache {
     public void invalidate(String appName, @Nullable String vipAddress, @Nullable String secureVipAddress) {
         for (Key.KeyType type : Key.KeyType.values()) {
             for (Version v : Version.values()) {
+                //将下面这些Key过期掉，就是从Map中移除
                 invalidate(
                         new Key(Key.EntityType.Application, appName, type, v, EurekaAccept.full),
                         new Key(Key.EntityType.Application, appName, type, v, EurekaAccept.compact),

@@ -278,6 +278,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             registrant.setActionType(ActionType.ADDED);
             recentlyChangedQueue.add(new RecentlyChangedItem(lease));
             registrant.setLastUpdatedTimestamp();
+            //刷新缓存
             invalidateCache(registrant.getAppName(), registrant.getVIPAddress(), registrant.getSecureVipAddress());
             logger.info("Registered instance {}/{} with status {} (replication={})",
                     registrant.getAppName(), registrant.getId(), registrant.getStatus(), isReplication);
@@ -320,8 +321,10 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             Map<String, Lease<InstanceInfo>> gMap = registry.get(appName);
             Lease<InstanceInfo> leaseToCancel = null;
             if (gMap != null) {
+                //从Map中将服务实例移除掉
                 leaseToCancel = gMap.remove(id);
             }
+            //将服务实例加入最近下线的队列中
             synchronized (recentCanceledQueue) {
                 recentCanceledQueue.add(new Pair<Long, String>(System.currentTimeMillis(), appName + "(" + id + ")"));
             }
@@ -334,17 +337,24 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 logger.warn("DS: Registry: cancel failed because Lease is not registered for: {}/{}", appName, id);
                 return false;
             } else {
+                //核心代码
                 leaseToCancel.cancel();
                 InstanceInfo instanceInfo = leaseToCancel.getHolder();
                 String vip = null;
                 String svip = null;
+                //将服务实例信息扔到最近改变的队列中去了
                 if (instanceInfo != null) {
                     instanceInfo.setActionType(ActionType.DELETED);
                     recentlyChangedQueue.add(new RecentlyChangedItem(leaseToCancel));
-                    instanceInfo.setLastUpdatedTimestamp();
+                    instanceInfo.setLastUpdatedTimestamp();//设置了服务实例的，最近一次变更的时间戳
                     vip = instanceInfo.getVIPAddress();
                     svip = instanceInfo.getSecureVipAddress();
+                    //服务的注册，下线，故障摘除，都会代表这个服务实例变化了，都会将自己放入最近改变的队列中去
+                    //这个最近改变的队列。只会保留最近3分钟的服务实例
+                    //说以说eureka client拉取增量注册表的时候，其实就是拉取最近3分钟有变化的服务实例的注册表
                 }
+
+                //过期掉这个注册表的缓存
                 invalidateCache(appName, vip, svip);
                 logger.info("Cancelled instance {}/{} (replication={})", appName, id, isReplication);
                 return true;
@@ -973,6 +983,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         Map<String, Application> applicationInstancesMap = new HashMap<String, Application>();
         try {
             write.lock();
+            //最近3分钟内有变化的服务实例
             Iterator<RecentlyChangedItem> iter = this.recentlyChangedQueue.iterator();
             logger.debug("The number of elements in the delta queue is :" + this.recentlyChangedQueue.size());
             while (iter.hasNext()) {
@@ -1344,8 +1355,10 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             public void run() {
                 Iterator<RecentlyChangedItem> it = recentlyChangedQueue.iterator();
                 while (it.hasNext()) {
+                    //说明这个记录进入队列的时间超过了3分钟
                     if (it.next().getLastUpdateTime() <
                             System.currentTimeMillis() - serverConfig.getRetentionTimeInMSInDeltaQueue()) {
+                        //将从队列中移除掉
                         it.remove();
                     } else {
                         break;
